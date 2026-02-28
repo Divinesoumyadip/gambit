@@ -22,6 +22,7 @@
 //
 
 #include <iostream>
+#include <algorithm>
 #include <fstream>
 #include <getopt.h>
 #include "gambit.h"
@@ -227,7 +228,21 @@ int main(int argc, char *argv[])
       }
       else {
         auto result = LogitStrategySolve(start, maxregret, 1.0, hStart, maxDecel, printer);
-        PrintProfile(std::cout, decimals, result.back(), true);
+        const double payoff_range = game->GetMaxPayoff() - game->GetMinPayoff();
+        const double scaled_regret = (payoff_range != 0.0) ? maxregret * payoff_range : maxregret;
+        const auto &best = *std::min_element(
+            result.begin(), result.end(),
+            [](const LogitQREMixedStrategyProfile &a, const LogitQREMixedStrategyProfile &b) {
+              return a.GetProfile().GetMaxRegret() < b.GetProfile().GetMaxRegret();
+            });
+        if (best.GetProfile().GetMaxRegret() <= scaled_regret) {
+          PrintProfile(std::cout, decimals, best, true);
+        } else {
+          PrintProfile(std::cout, decimals, best, false);
+          std::cerr << "WARNING: Tracing terminated without meeting acceptance criterion.\n"
+                    << "Best max regret found: " << best.GetProfile().GetMaxRegret()
+                    << " (Tolerance: " << scaled_regret << ")" << std::endl;
+        }
       }
     }
     else {
@@ -246,7 +261,21 @@ int main(int argc, char *argv[])
       }
       else {
         auto result = LogitBehaviorSolve(start, maxregret, 1.0, hStart, maxDecel, printer);
-        PrintProfile(std::cout, decimals, result.back(), true);
+        const double payoff_range = game->GetMaxPayoff() - game->GetMinPayoff();
+        const double scaled_regret = (payoff_range != 0.0) ? maxregret * payoff_range : maxregret;
+        const auto &best = *std::min_element(
+            result.begin(), result.end(),
+            [](const LogitQREMixedBehaviorProfile &a, const LogitQREMixedBehaviorProfile &b) {
+              return a.GetProfile().GetMaxRegret() < b.GetProfile().GetMaxRegret();
+            });
+        if (best.GetProfile().GetMaxRegret() <= scaled_regret) {
+          PrintProfile(std::cout, decimals, best, true);
+        } else {
+          PrintProfile(std::cout, decimals, best, false);
+          std::cerr << "WARNING: Tracing terminated without meeting acceptance criterion.\n"
+                    << "Best max regret found: " << best.GetProfile().GetMaxRegret()
+                    << " (Tolerance: " << scaled_regret << ")" << std::endl;
+        }
       }
     }
     return 0;

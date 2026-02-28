@@ -141,7 +141,7 @@ void PathTracer::TracePath(
   const int c_maxIter = 100;     // maximum iterations in corrector
 
   bool newton = false;             // using Newton steplength (for zero-finding)
-  const double c_pert = 0.0000001; // The size of perturbation to apply to avoid bifurcation traps
+  const double c_pert = 0.0001;    // The size of perturbation to apply to avoid bifurcation traps
   double pert = 0.0;               // The current version of the perturbation being applied
   double pert_countdown = 0.0;     // How much longer (in arclength) to apply perturbation
 
@@ -215,16 +215,28 @@ void PathTracer::TracePath(
     if (omega_flip == -1.0) {
       // The orientation of the curve has changed, indicating a bifurcation.
       // Switch on perturbation and attempt to continue following the branch that
-      // is oriented in the same direction as we were originally following
-      if (pert_countdown == 0.0) {
-        pert = c_pert;
-        pert_countdown = abs(2 * h);
-      }
+      // is oriented in the same direction as we were originally following.
+      // Each time a flip is detected while perturbation is active, escalate pert
+      // so it has a stronger effect on the near-singular Jacobian.
+      pert = (pert == 0.0) ? c_pert : pert * 10.0;
+      // Ensure enough arclength to actually travel past the bifurcation region.
+      pert_countdown = std::max(std::abs(10.0 * h), 0.1);
+      accept = false;
+    }
+    // If lambda has gone negative the corrector has found the wrong branch;
+    // treat this as a failed step so h is reduced and we retry.
+    if (u.back() < 0.0 && x.back() >= 0.0) {
       accept = false;
     }
 
     if (!accept) {
       h /= m_maxDecel; // PC not accepted; change stepsize and retry
+      // If we have been stuck for several halvings and a perturbation is active,
+      // escalate it so it has a stronger effect on the near-singular Jacobian.
+      // Cap at 1.0 to avoid perturbing the equations into nonsense.
+      if (pert > 0.0 && h < m_hStart * 0.01) {
+        pert = std::min(pert * 10.0, 1.0);
+      }
       if (fabs(h) <= c_hmin) {
         return;
       }
