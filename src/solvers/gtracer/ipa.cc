@@ -210,7 +210,7 @@ void FindPerturbedBR(const gnmgame &A, const cvector &g, std::vector<int> &Im)
 }
 
 int IPA(const gnmgame &A, const cvector &g, cvector &zh, double alpha, double fuzz, cvector &ans,
-        unsigned int maxiter, bool p_verbose)
+        unsigned int maxiter, std::function<void(unsigned int, const cvector &)> p_on_iter)
 {
   const int N = A.getNumPlayers(),
             M = A.getNumActions(); // For easy reference
@@ -315,10 +315,7 @@ int IPA(const gnmgame &A, const cvector &g, cvector &zh, double alpha, double fu
     ym1 -= zh;
     ym2 = s;
     ym2 -= sh;
-    if (p_verbose) {
-      std::cerr << "iter " << iter << "\tz diff " << ym1.norm() << "\ts diff " << ym2.norm()
-                << std::endl;
-    }
+    if (p_on_iter) { p_on_iter(iter, s); }
     if (!std::isfinite(ym1.norm()) || !std::isfinite(ym2.norm())) {
       throw std::out_of_range("encountered infinite probabilities in computed strategy profile");
     }
@@ -372,3 +369,5 @@ int IPA(const gnmgame &A, const cvector &g, cvector &zh, double alpha, double fu
 }
 
 } // end namespace Gambit::gametracer
+
+

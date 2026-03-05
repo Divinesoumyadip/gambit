@@ -75,7 +75,8 @@ void GNM(gnmgame &A, cvector &g, std::list<cvector> &Eq, int steps, double fuzz,
 /// @param verbose whether to print intermediate information on the progress of the
 ///                algorithm
 int IPA(const gnmgame &A, const cvector &g, cvector &zh, double alpha, double fuzz, cvector &ans,
-        unsigned int maxiter = 100, bool p_verbose = false);
+          unsigned int maxiter = 100,
+          std::function<void(unsigned int, const cvector &)> p_on_iter = nullptr);
 
 /// @brief Build a Gametracer representation based on a Gambit game
 /// @param p_game  The game to convert to Gametracer's representation
@@ -95,3 +96,4 @@ MixedStrategyProfile<double> ToProfile(const Game &p_game, const cvector &p_prof
 } // end namespace Gambit::gametracer
 
 #endif // GAMBIT_GTRACER_GTRACER_H
+

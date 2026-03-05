@@ -19,7 +19,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 //
-
 #include <algorithm>
 #include "gambit.h"
 #include "solvers/ipa/ipa.h"
@@ -57,10 +56,18 @@ IPAStrategySolve(const MixedStrategyProfile<double> &p_pert,
   const cvector g(ToPerturbation(p_pert));
   cvector ans(A->getNumActions());
   cvector zh(A->getNumActions(), 1.0);
+
+  // Per-iteration callback: convert gtracer cvector to MixedStrategyProfile
+  // and invoke p_callback so callers can observe intermediate iterates.
+  auto on_iter = [&](unsigned int iter, const cvector &s) {
+    MixedStrategyProfile<double> profile = ToProfile(p_pert.GetGame(), s);
+    p_callback(profile, "step:" + std::to_string(iter));
+  };
+
   while (true) {
     const double ALPHA = 0.2;
     const double EQERR = 1e-6;
-    if (IPA(*A, g, zh, ALPHA, EQERR, ans)) {
+    if (IPA(*A, g, zh, ALPHA, EQERR, ans, 100, on_iter)) {
       break;
     }
   }
